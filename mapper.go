@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -301,7 +303,7 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
-
+	log.Println(fromElem.NumField())
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
 		fieldName := GetFieldName(fromElem, i)
@@ -312,13 +314,15 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 		}
 
 		toFieldInfo := toElem.FieldByName(realFieldName)
+		timeToTimestampFlag := DefaultTimeWrapper.IsType(fromFieldInfo) && toFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
+		timeToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
 		//check field is same type
 		if enabledTypeChecking {
-			if fromFieldInfo.Kind() != toFieldInfo.Kind() {
+			typeFlaf := fromFieldInfo.Kind() != toFieldInfo.Kind()
+			if typeFlaf && !timeToTimestampFlag && timeToTimeFlag {
 				continue
 			}
 		}
-
 		if enabledMapperStructField &&
 			toFieldInfo.Kind() == reflect.Struct && fromFieldInfo.Kind() == reflect.Struct &&
 			toFieldInfo.Type() != fromFieldInfo.Type() &&
@@ -340,6 +344,17 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 				} else if DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Kind() == reflect.Int64 {
 					fromTime := fromFieldInfo.Interface().(int64)
 					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromTime)))
+					isSet = true
+				}
+				if timeToTimestampFlag {
+					fromValue := fromFieldInfo.Interface().(time.Time).Unix()
+					toValue := reflect.ValueOf(&timestamp.Timestamp{Seconds: fromValue})
+					toFieldInfo.Set(toValue)
+					isSet = true
+				}
+				if timeToTimeFlag {
+					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp).GetSeconds()
+					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue)))
 					isSet = true
 				}
 			}

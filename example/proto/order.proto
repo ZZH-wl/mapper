@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+package order;
+
+service OrderSrv {
+    rpc CreateOrder (Req) returns (Res) {
+    }
+    rpc GetOrder (Req) returns (Res) {
+    }
+    rpc UpdateOrder (Req) returns (Res) {
+    }
+    rpc DeleteOrder (DeleteReq) returns (Res) {
+    }
+}
+
+message DeleteReq {
+    int64 id = 1;
+}
+
+message Req {
+    Order order = 1;
+}
+
+message Res {
+    int64 code = 1;
+    string msg = 2;
+    repeated Order data = 3;
+}
+
+message Order {
+    int64 id = 1;
+    google.protobuf.Timestamp createdOn = 2;
+    google.protobuf.Timestamp modifiedOn = 3;
+    google.protobuf.Timestamp deletedOn = 4;
+    int64 storeId = 5;
+    string userUid = 6;
+    string orderNo = 7;
+    string payNo = 8;
+    string logisticsNo = 9;
+    int64 orderStatus = 10;
+    double originFee = 11;
+    double payFee = 15;
+    google.protobuf.Timestamp payTime = 16;
+    string userMem = 37;
+    bool isStore = 38;
+}

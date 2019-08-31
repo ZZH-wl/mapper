@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/devfeel/mapper"
+	"github.com/ZZH-wl/mapper"
+	order "github.com/ZZH-wl/mapper/example/proto"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"time"
 )
 
@@ -75,4 +77,51 @@ func main() {
 	}
 
 	fmt.Println(jsonUser)
+
+
+	orderObj := &order.Order{
+		Id:                   12,
+		CreatedOn:            &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		ModifiedOn:           &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		DeletedOn:            &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		PayTime:              &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		StoreId:              12,
+		UserUid:              "234678fgdxcbvn424467",
+		OrderNo:              "78521369542369521525",
+		PayNo:                "852374285239984223685",
+		LogisticsNo:          "788651245456512",
+		OrderStatus:          3.00,
+		OriginFee:            100.00,
+		PayFee:               120.4521,
+		UserMem:              "当时法国卡斯蒂略结合当时法国卡斯蒂略结合体",
+		IsStore:              false,
+	}
+
+	oldOrder := &order.OldOrder{
+		Id:                   12,
+		CreatedOn:            time.Now(),
+		//ModifiedOn:           time.Now(),
+		//DeletedOn:            time.Now(),
+		PayTime:              time.Now(),
+		StoreId:              12,
+		UserUid:              "234678fgdxcbvn424467",
+		OrderNo:              "78521369542369521525",
+		PayNo:                "852374285239984223685",
+		LogisticsNo:          "788651245456512",
+		OrderStatus:          3.00,
+		OriginFee:            100.00,
+		PayFee:               120.3432,
+		UserMem:              "当时法国卡斯蒂略结合当时法国卡斯蒂略结合体",
+		IsStore:              false,
+	}
+	order1 := &order.Order{}
+	oldOrder1 := &order.OldOrder{}
+	order2 := &order.Order{}
+	oldOrder2 := &order.OldOrder{}
+
+	mapper.Mapper(oldOrder, order1)
+	mapper.Mapper(order1, oldOrder1)
+
+	mapper.AutoMapper(orderObj, oldOrder2)
+	mapper.AutoMapper(oldOrder2, order2)
 }
