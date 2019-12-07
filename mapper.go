@@ -517,7 +517,6 @@ func checkIsRegister(objElem reflect.Value) bool {
 func convertToSlice(arr interface{}) []interface{} {
 	v := reflect.ValueOf(arr)
 	if v.Kind() != reflect.Slice {
-		ƒ
 		panic("toslice arr not slice")
 	}
 	l := v.Len()
