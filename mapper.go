@@ -315,6 +315,7 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
+
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
 		fieldName := GetFieldName(fromElem, i)
@@ -326,14 +327,15 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 
 		toFieldInfo := toElem.FieldByName(realFieldName)
 		timeToTimestampFlag := DefaultTimeWrapper.IsType(fromFieldInfo) && toFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
-		timeToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
+		timestampToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
 		//check field is same type
 		if enabledTypeChecking {
 			typeFlaf := fromFieldInfo.Kind() != toFieldInfo.Kind()
-			if typeFlaf && !timeToTimestampFlag && timeToTimeFlag {
+			if typeFlaf && !timeToTimestampFlag && timestampToTimeFlag {
 				continue
 			}
 		}
+
 		if enabledMapperStructField &&
 			toFieldInfo.Kind() == reflect.Struct && fromFieldInfo.Kind() == reflect.Struct &&
 			toFieldInfo.Type() != fromFieldInfo.Type() &&
@@ -363,7 +365,7 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 					toFieldInfo.Set(toValue)
 					isSet = true
 				}
-				if timeToTimeFlag {
+				if timestampToTimeFlag {
 					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp).GetSeconds()
 					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue)))
 					isSet = true
