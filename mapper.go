@@ -296,12 +296,28 @@ func StructToMap(fromObj, toObj interface{}) {
 	}
 	if value, ok := toObj.(map[string]interface{}); ok {
 		for i := 0; i < fromElemType.NumField(); i++ {
-			value[fromElemType.Field(i).Tag.Get("json")] = fromElem.Field(i).Interface()
+			jsonTagData := fromElemType.Field(i).Tag.Get("json")
+			comma := strings.Index(jsonTagData, ",")
+			if comma > 0 {
+				value[jsonTagData[:comma]] = fromElem.Field(i).Interface()
+				continue
+			}
+			if jsonTagData != "" {
+				value[jsonTagData] = fromElem.Field(i).Interface()
+			}
 		}
 	}
 	if value, ok := toObj.(map[string]string); ok {
 		for i := 0; i < fromElemType.NumField(); i++ {
-			value[fromElemType.Field(i).Tag.Get("json")] = fromElem.Field(i).String()
+			jsonTagData := fromElemType.Field(i).Tag.Get("json")
+			comma := strings.Index(jsonTagData, ",")
+			if comma > 0 {
+				value[jsonTagData[:comma]] = fromElem.Field(i).String()
+				continue
+			}
+			if jsonTagData != "" {
+				value[jsonTagData] = fromElem.Field(i).String()
+			}
 		}
 	}
 }
