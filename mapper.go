@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -297,12 +296,12 @@ func StructToMap(fromObj, toObj interface{}) {
 	}
 	if value, ok := toObj.(map[string]interface{}); ok {
 		for i := 0; i < fromElemType.NumField(); i++ {
-			value[fromElemType.Field(i).Name] = fromElem.Field(i).Interface()
+			value[fromElemType.Field(i).Tag.Get("json")] = fromElem.Field(i).Interface()
 		}
 	}
 	if value, ok := toObj.(map[string]string); ok {
 		for i := 0; i < fromElemType.NumField(); i++ {
-			value[fromElemType.Field(i).Name] = fromElem.Field(i).String()
+			value[fromElemType.Field(i).Tag.Get("json")] = fromElem.Field(i).String()
 		}
 	}
 }
@@ -335,15 +334,15 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	}
 	a := registerMap
 	b := fieldNameMap
-	log.Println(a)
-	log.Println(b)
+	fmt.Println(a)
+	fmt.Println(b)
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
 	e := registerMap
 	f := fieldNameMap
-	log.Println(e)
-	log.Println(f)
+	fmt.Println(e)
+	fmt.Println(f)
 
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
