@@ -289,20 +289,20 @@ func JsonToMap(body []byte, toMap *map[string]interface{}) error {
 
 // StructToMap mapper from json []byte to map[string]interface{} or map[string]string
 func StructToMap(fromObj, toObj interface{}) {
-	t := reflect.TypeOf(fromObj) // 获取 obj 的类型信息
-	v := reflect.ValueOf(fromObj)
-	if t.Kind() == reflect.Ptr { // 如果是指针，则获取其所指向的元素
-		t = t.Elem()
-		v = v.Elem()
+	fromElemType := reflect.TypeOf(fromObj)
+	fromElem := reflect.ValueOf(fromObj)
+	if fromElemType.Kind() == reflect.Ptr {
+		fromElemType = fromElemType.Elem()
+		fromElem = fromElem.Elem()
 	}
 	if value, ok := toObj.(map[string]interface{}); ok {
-		for i := 0; i < t.NumField(); i++ {
-			value[t.Field(i).Name] = v.Field(i).Interface()
+		for i := 0; i < fromElemType.NumField(); i++ {
+			value[fromElemType.Field(i).Name] = fromElem.Field(i).Interface()
 		}
 	}
 	if value, ok := toObj.(map[string]string); ok {
-		for i := 0; i < t.NumField(); i++ {
-			value[t.Field(i).Name] = v.Field(i).String()
+		for i := 0; i < fromElemType.NumField(); i++ {
+			value[fromElemType.Field(i).Name] = fromElem.Field(i).String()
 		}
 	}
 }
