@@ -167,7 +167,7 @@ func GetFieldName(objElem reflect.Value, index int) string {
 // 4.reflect.Uint8\16\32\64
 // 5.reflect.Float32\64
 // 6.time.Time
-func MapperMap(fromMap map[string]interface{}, toObj interface{}) error {
+func MapperMap(fromMap interface{}, toObj interface{}) error {
 	toElemType := reflect.ValueOf(toObj)
 	toElem := toElemType
 	if toElemType.Kind() == reflect.Ptr {
@@ -182,8 +182,11 @@ func MapperMap(fromMap map[string]interface{}, toObj interface{}) error {
 	if !checkIsRegister(toElem) {
 		Register(toObj)
 	}
-	for k, v := range fromMap {
-		fieldName := k
+	fromElemType := reflect.ValueOf(fromMap)
+	fromKeys := fromElemType.MapKeys()
+
+	for _, k := range fromKeys {
+		fieldName := k.String()
 		//check field is exists
 		realFieldName, exists := CheckExistsField(toElem, fieldName)
 		if !exists {
@@ -195,7 +198,7 @@ func MapperMap(fromMap map[string]interface{}, toObj interface{}) error {
 		}
 		fieldKind := fieldInfo.Type.Kind()
 		fieldValue := toElem.FieldByName(realFieldName)
-		setFieldValue(fieldValue, fieldKind, v)
+		setFieldValue(fieldValue, fieldKind, fromElemType.MapIndex(k))
 	}
 	return nil
 }
@@ -286,7 +289,7 @@ func JsonToMap(body []byte, toMap *map[string]interface{}) error {
 	return err
 }
 
-// StructToMap mapper from json []byte to map[string]interface{} or map[string]string
+// StructToMap mapper from struct to map[string]interface{} or map[string]string
 func StructToMap(fromObj, toObj interface{}) {
 	fromElemType := reflect.TypeOf(fromObj)
 	fromElem := reflect.ValueOf(fromObj)
