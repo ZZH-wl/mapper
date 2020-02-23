@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -286,6 +287,26 @@ func JsonToMap(body []byte, toMap *map[string]interface{}) error {
 	return err
 }
 
+// StructToMap mapper from json []byte to map[string]interface{} or map[string]string
+func StructToMap(fromObj, toObj interface{}) {
+	t := reflect.TypeOf(fromObj) // 获取 obj 的类型信息
+	v := reflect.ValueOf(fromObj)
+	if t.Kind() == reflect.Ptr { // 如果是指针，则获取其所指向的元素
+		t = t.Elem()
+		v = v.Elem()
+	}
+	if value, ok := toObj.(map[string]interface{}); ok {
+		for i := 0; i < t.NumField(); i++ {
+			value[t.Field(i).Name] = v.Field(i).Interface()
+		}
+	}
+	if value, ok := toObj.(map[string]string); ok {
+		for i := 0; i < t.NumField(); i++ {
+			value[t.Field(i).Name] = v.Field(i).String()
+		}
+	}
+}
+
 // Mapper mapper and set value from struct fromObj to toObj
 // not support auto register struct
 func Mapper(fromObj, toObj interface{}) error {
@@ -312,9 +333,17 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	if !checkIsRegister(fromElem) {
 		registerValue(fromElem)
 	}
+	a := registerMap
+	b := fieldNameMap
+	log.Println(a)
+	log.Println(b)
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
+	e := registerMap
+	f := fieldNameMap
+	log.Println(e)
+	log.Println(f)
 
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
