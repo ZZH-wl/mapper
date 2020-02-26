@@ -351,17 +351,17 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	if !checkIsRegister(fromElem) {
 		registerValue(fromElem)
 	}
-	a := registerMap
-	b := fieldNameMap
-	fmt.Println(a)
-	fmt.Println(b)
+	//a := registerMap
+	//b := fieldNameMap
+	//fmt.Println(a)
+	//fmt.Println(b)
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
-	e := registerMap
-	f := fieldNameMap
-	fmt.Println(e)
-	fmt.Println(f)
+	//e := registerMap
+	//f := fieldNameMap
+	//fmt.Println(e)
+	//fmt.Println(f)
 
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
