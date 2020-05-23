@@ -543,6 +543,11 @@ func getStructTag(field reflect.StructField) string {
 	tagValue := ""
 	// 1.check mapperTagKey
 	tagValue = field.Tag.Get(mapperTagKey)
+
+	if tagValue == IgnoreTagValue {
+		return ""
+	}
+
 	if checkTagValidity(tagValue) {
 		return tagValue
 	}
