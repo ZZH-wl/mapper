@@ -115,7 +115,7 @@ func registerValue(objValue reflect.Value) error {
 	typeName := regValue.Type().String()
 	for i := 0; i < regValue.NumField(); i++ {
 		fieldName := GetFieldName(regValue, i)
-		if fieldName == "" {
+		if fieldName == "-" {
 			continue
 		}
 		mapFieldName := typeName + nameConnector + fieldName
@@ -545,20 +545,17 @@ func getStructTag(field reflect.StructField) string {
 	tagValue = field.Tag.Get(mapperTagKey)
 
 	if tagValue == IgnoreTagValue {
-		return ""
+		return "-"
 	}
-
 	if checkTagValidity(tagValue) {
 		return tagValue
 	}
-
 	// 2.check jsonTagKey
 	tagValue = field.Tag.Get(jsonTagKey)
 	if checkTagValidity(tagValue) {
 		// support more tag property, as json tag omitempty 2018-07-13
 		return strings.Split(tagValue, ",")[0]
 	}
-
 	return ""
 }
 
