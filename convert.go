@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -204,6 +205,13 @@ func TimeToUnix(t time.Time) int64 {
 // UnixToTime transform Unix time to local Time
 func UnixToTime(tt int64) time.Time {
 	return time.Unix(tt, 0)
+}
+
+func TimeToTimestamp(time int64) timestamp.Timestamp {
+	return timestamp.Timestamp{Seconds: time}
+}
+func TimestampToTime() {
+
 }
 
 // TimeToUnixLocation transform time to Unix time with time location
