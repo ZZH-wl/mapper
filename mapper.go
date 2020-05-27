@@ -21,6 +21,7 @@ var (
 	enabledAutoTypeConvert   bool
 	timeType                 = reflect.TypeOf(time.Now())
 	jsonTimeType             = reflect.TypeOf(JSONTime(time.Now()))
+	timestampType            = reflect.TypeOf(new(timestamp.Timestamp))
 	typeWrappers             []TypeWrapper
 )
 
@@ -368,12 +369,12 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 		}
 
 		toFieldInfo := toElem.FieldByName(realFieldName)
-		timeToTimestampFlag := DefaultTimeWrapper.IsType(fromFieldInfo) && toFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
-		timestampToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == reflect.TypeOf(new(timestamp.Timestamp))
+		timeToTimestampFlag := DefaultTimeWrapper.IsType(fromFieldInfo) && toFieldInfo.Type() == timestampType
+		timestampToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == timestampType
 		// check field is same type
 		if enabledTypeChecking {
-			typeFlaf := fromFieldInfo.Kind() != toFieldInfo.Kind()
-			if typeFlaf && !timeToTimestampFlag && timestampToTimeFlag {
+			typeFlag := fromFieldInfo.Kind() != toFieldInfo.Kind()
+			if typeFlag && !timeToTimestampFlag && timestampToTimeFlag {
 				continue
 			}
 		}
@@ -408,8 +409,11 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 					isSet = true
 				}
 				if timestampToTimeFlag {
-					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp).GetSeconds()
-					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue)))
+					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp)
+					if fromValue == nil {
+						continue
+					}
+					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue.GetSeconds())))
 					isSet = true
 				}
 			}
