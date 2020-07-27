@@ -357,7 +357,6 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 	if !checkIsRegister(toElem) {
 		registerValue(toElem)
 	}
-	fmt.Println(fromElem.NumField())
 
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
@@ -403,14 +402,14 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 					isSet = true
 				}
 				if timeToTimestampFlag {
-					fromValue := fromFieldInfo.Interface().(time.Time).Unix()
-					toValue := reflect.ValueOf(&timestamp.Timestamp{Seconds: fromValue})
+					fromValue := fromFieldInfo.Interface().(time.Time)
+					toValue := reflect.ValueOf(&timestamp.Timestamp{Seconds: fromValue.Unix()})
 					toFieldInfo.Set(toValue)
 					isSet = true
 				}
 				if timestampToTimeFlag {
 					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp)
-					if fromValue == nil {
+					if reflect.ValueOf(fromValue).IsNil() {
 						continue
 					}
 					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue.GetSeconds())))
