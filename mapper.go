@@ -403,7 +403,7 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 				}
 				if timeToTimestampFlag {
 					fromValue := fromFieldInfo.Interface().(time.Time)
-					toValue := reflect.ValueOf(&timestamp.Timestamp{Seconds: fromValue.Unix()})
+					toValue := reflect.ValueOf(TimeToTimestamp(fromValue))
 					toFieldInfo.Set(toValue)
 					isSet = true
 				}
@@ -412,7 +412,7 @@ func elemMapper(fromElem, toElem reflect.Value) error {
 					if reflect.ValueOf(fromValue).IsNil() {
 						continue
 					}
-					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromValue.GetSeconds())))
+					toFieldInfo.Set(reflect.ValueOf(TimestampToTime(fromValue)))
 					isSet = true
 				}
 			}
@@ -493,6 +493,11 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 			var timeString string
 			if fieldValue.Type() == timeType {
 				timeString = ""
+				if v, ok := value.(reflect.Value); ok {
+					if v, ok := v.Interface().(string); ok {
+						value = TimeStrAutoToTime(v)
+					}
+				}
 				fieldValue.Set(reflect.ValueOf(value))
 			}
 			if fieldValue.Type() == jsonTimeType {

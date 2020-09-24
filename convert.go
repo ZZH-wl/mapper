@@ -2,7 +2,8 @@ package mapper
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -207,11 +208,14 @@ func UnixToTime(tt int64) time.Time {
 	return time.Unix(tt, 0)
 }
 
-func TimeToTimestamp(time int64) timestamp.Timestamp {
-	return timestamp.Timestamp{Seconds: time}
+func TimestampToTime(timestampObj *tspb.Timestamp) time.Time {
+	t, _ := ptypes.Timestamp(timestampObj)
+	return t
 }
-func TimestampToTime() {
 
+func TimeToTimestamp(timeObj time.Time) *tspb.Timestamp {
+	t, _ := ptypes.TimestampProto(timeObj)
+	return t
 }
 
 // TimeToUnixLocation transform time to Unix time with time location
@@ -238,4 +242,96 @@ func UnixToTimeLocation(tt int64, location string) (time.Time, error) {
 	}
 	time.Local = loc
 	return time.Unix(tt, 0), nil
+}
+
+func TimeStrAutoToTime(timeStr string) time.Time {
+	format, timeStr, timeZone := CheckTimeStrFormat(timeStr)
+	loc, _ := time.LoadLocation(timeZone)
+	formatTime, _ := time.ParseInLocation(format, timeStr, loc)
+	return formatTime
+}
+
+func CheckTimeStrFormat(timeStr string) (string, string, string) {
+	var format, timezone string
+	switch len(timeStr) {
+	case 8:
+		format = "20060102"
+	case 10:
+		format = "2006-01-02"
+	case 14:
+		format = "20060102150405"
+	case 19:
+		format = "2006-01-02 15:04:05"
+	case 24, 25, 26:
+		timezone = checkTimezone(timeStr[19:])
+		format = "2006-01-02 15:04:05"
+		timeStr = timeStr[:10] + " " + timeStr[11:19]
+	}
+	if checkFormat(timeStr) {
+		format = "2006/01/02" + format[10:]
+	}
+	return format, timeStr, timezone
+}
+
+func checkFormat(str string) bool {
+	if len(str) < 10 || str[4:5] != "/" || str[7:8] != "/" {
+		return false
+	}
+	return true
+}
+
+func checkTimezone(timezone string) string {
+	switch timezone {
+	case "+0000", "+00:00", "Z00:00", "Z0000":
+		timezone = "UTC"
+	case "+0100", "+01:00", "Z01:00", "Z0100":
+		timezone = "Europe/London"
+	case "+0200", "+02:00", "Z02:00", "Z0200":
+		timezone = "Africa/Cairo"
+	case "+0300", "+03:00", "Z03:00", "Z0300":
+		timezone = "Europe/Moscow"
+	case "+0400", "+04:00", "Z04:00", "Z0400":
+		timezone = "Asia/Dubai"
+	case "+0500", "+05:00", "Z05:00", "Z0500":
+		timezone = "Asia/Yekaterinburg"
+	case "+0600", "+06:00", "Z06:00", "Z0600":
+		timezone = "Asia/Urumqi"
+	case "+0700", "+07:00", "Z07:00", "Z0700":
+		timezone = "Asia/Jakarta"
+	case "+0800", "+08:00", "Z08:00", "Z0800":
+		timezone = "Asia/Shanghai"
+	case "+0900", "+09:00", "Z09:00", "Z0900":
+		timezone = "Asia/Tokyo"
+	case "+1000", "+010:00", "Z010:00", "Z1000":
+		timezone = "Australia/Brisbane"
+	case "+1100", "+011:00", "Z011:00", "Z1100":
+		timezone = "Pacific/Guadalcanal"
+	case "+1200", "+012:00", "Z012:00", "Z1200":
+		timezone = "Pacific/Nauru"
+	case "-0100", "-01:00", "Z013:00", "Z1300":
+		timezone = "Atlantic/Cape_Verde"
+	case "-0200", "-02:00", "Z014:00", "Z1400":
+		timezone = "Atlantic/South_Georgia"
+	case "-0300", "-03:00", "Z015:00", "Z1500":
+		timezone = "America/Sao_Paulo"
+	case "-0400", "-04:00", "Z016:00", "Z1600":
+		timezone = "America/Toronto"
+	case "-0500", "-05:00", "Z017:00", "Z1700":
+		timezone = "America/Cayman"
+	case "-0600", "-06:00", "Z018:00", "Z1800":
+		timezone = "America/Costa_Rica"
+	case "-0700", "-07:00", "Z019:00", "Z1900":
+		timezone = "America/Phoenix"
+	case "-0800", "-08:00", "Z020:00", "Z2000":
+		timezone = "America/Anchorage"
+	case "-0900", "-09:00", "Z021:00", "Z2100":
+		timezone = "Pacific/Gambier"
+	case "-1000", "-010:00", "Z022:00", "Z2200":
+		timezone = "Pacific/Honolulu"
+	case "-1100", "-011:00", "Z023:00", "Z2300":
+		timezone = "Pacific/Midway"
+	default:
+		timezone = "UTC"
+	}
+	return timezone
 }
