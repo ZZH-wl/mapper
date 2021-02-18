@@ -2,23 +2,25 @@ package mapper
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"reflect"
 	"strings"
 	"time"
 )
 
 func elemMapper(fromElem, toElem reflect.Value) error {
-	//check register flag
-	//if not register, register it
+	// check register flag
+	// if not register, register it
 	if !checkIsRegister(fromElem) {
 		registerValue(fromElem)
 	}
-	if !checkIsRegister(toElem) {
-		registerValue(toElem)
-	}
+
 	if toElem.Type().Kind() == reflect.Map {
 		elemToMap(fromElem, toElem)
 	} else {
+		if !checkIsRegister(toElem) {
+			registerValue(toElem)
+		}
 		elemToStruct(fromElem, toElem)
 	}
 
@@ -29,16 +31,19 @@ func elemToStruct(fromElem, toElem reflect.Value) {
 	for i := 0; i < fromElem.NumField(); i++ {
 		fromFieldInfo := fromElem.Field(i)
 		fieldName := GetFieldName(fromElem, i)
-		//check field is exists
+		// check field is exists
 		realFieldName, exists := CheckExistsField(toElem, fieldName)
 		if !exists {
 			continue
 		}
 
 		toFieldInfo := toElem.FieldByName(realFieldName)
-		//check field is same type
+		timeToTimestampFlag := DefaultTimeWrapper.IsType(fromFieldInfo) && toFieldInfo.Type() == timestampType
+		timestampToTimeFlag := DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Type() == timestampType
+		// check field is same type
 		if enabledTypeChecking {
-			if fromFieldInfo.Kind() != toFieldInfo.Kind() {
+			typeFlag := fromFieldInfo.Kind() != toFieldInfo.Kind()
+			if typeFlag && !timeToTimestampFlag && timestampToTimeFlag {
 				continue
 			}
 		}
@@ -64,6 +69,20 @@ func elemToStruct(fromElem, toElem reflect.Value) {
 				} else if DefaultTimeWrapper.IsType(toFieldInfo) && fromFieldInfo.Kind() == reflect.Int64 {
 					fromTime := fromFieldInfo.Interface().(int64)
 					toFieldInfo.Set(reflect.ValueOf(UnixToTime(fromTime)))
+					isSet = true
+				}
+				if timeToTimestampFlag {
+					fromValue := fromFieldInfo.Interface().(time.Time)
+					toValue := reflect.ValueOf(TimeToTimestamp(fromValue))
+					toFieldInfo.Set(toValue)
+					isSet = true
+				}
+				if timestampToTimeFlag {
+					fromValue := fromFieldInfo.Interface().(*timestamp.Timestamp)
+					if reflect.ValueOf(fromValue).IsNil() {
+						continue
+					}
+					toFieldInfo.Set(reflect.ValueOf(TimestampToTime(fromValue)))
 					isSet = true
 				}
 			}
@@ -151,6 +170,11 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 			var timeString string
 			if fieldValue.Type() == timeType {
 				timeString = ""
+				if v, ok := value.(reflect.Value); ok {
+					if v, ok := v.Interface().(string); ok {
+						value = TimeStrAutoToTime(v)
+					}
+				}
 				fieldValue.Set(reflect.ValueOf(value))
 			}
 			if fieldValue.Type() == jsonTimeType {
@@ -164,7 +188,7 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 				timeString = d
 			case int64:
 				if enabledAutoTypeConvert {
-					//try to transform Unix time to local Time
+					// try to transform Unix time to local Time
 					t, err := UnixToTimeLocation(value.(int64), time.UTC.String())
 					if err != nil {
 						return err
@@ -174,7 +198,7 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 			}
 			if timeString != "" {
 				if len(timeString) >= 19 {
-					//满足yyyy-MM-dd HH:mm:ss格式
+					// 满足yyyy-MM-dd HH:mm:ss格式
 					timeString = timeString[:19]
 					t, err := time.ParseInLocation(formatDateTime, timeString, time.UTC)
 					if err == nil {
@@ -182,7 +206,7 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 						fieldValue.Set(reflect.ValueOf(t))
 					}
 				} else if len(timeString) >= 10 {
-					//满足yyyy-MM-dd格式
+					// 满足yyyy-MM-dd格式
 					timeString = timeString[:10]
 					t, err := time.ParseInLocation(formatDate, timeString, time.UTC)
 					if err == nil {
@@ -201,20 +225,21 @@ func setFieldValue(fieldValue reflect.Value, fieldKind reflect.Kind, value inter
 }
 
 func getStructTag(field reflect.StructField) string {
-	tagValue := ""
-	//1.check mapperTagKey
-	tagValue = field.Tag.Get(mapperTagKey)
+	tagValue := field.Tag.Get(mapperTagKey)
+	// 1.check IgnoreTagValue
+	if tagValue == IgnoreTagValue {
+		return "-"
+	}
+	// 2.check mapperTagKey
 	if checkTagValidity(tagValue) {
 		return tagValue
 	}
-
-	//2.check jsonTagKey
+	// 3.check jsonTagKey
 	tagValue = field.Tag.Get(jsonTagKey)
 	if checkTagValidity(tagValue) {
 		// support more tag property, as json tag omitempty 2018-07-13
 		return strings.Split(tagValue, ",")[0]
 	}
-
 	return ""
 }
 
@@ -231,7 +256,7 @@ func checkIsRegister(objElem reflect.Value) bool {
 	return isOk
 }
 
-//convert slice interface{} to []interface{}
+// convert slice interface{} to []interface{}
 func convertToSlice(arr interface{}) []interface{} {
 	v := reflect.ValueOf(arr)
 	if v.Kind() == reflect.Ptr {
@@ -250,4 +275,36 @@ func convertToSlice(arr interface{}) []interface{} {
 		ret[i] = v.Index(i).Interface()
 	}
 	return ret
+}
+
+// GetTypeName get type name
+func GetTypeName(obj interface{}) string {
+	object := reflect.ValueOf(obj)
+	return object.String()
+}
+
+// CheckExistsField check field is exists by name
+func CheckExistsField(elem reflect.Value, fieldName string) (realFieldName string, exists bool) {
+	typeName := elem.Type().String()
+	fileKey := typeName + nameConnector + fieldName
+	realName, isOk := fieldNameMap.Load(fileKey)
+
+	if !isOk {
+		return "", isOk
+	} else {
+		return realName.(string), isOk
+	}
+
+}
+
+// GetFieldName get fieldName with ElemValue and index
+// if config tag string, return tag value
+func GetFieldName(objElem reflect.Value, index int) string {
+	field := objElem.Type().Field(index)
+	fieldName := field.Name
+	tag := getStructTag(field)
+	if tag != "" {
+		fieldName = tag
+	}
+	return fieldName
 }
