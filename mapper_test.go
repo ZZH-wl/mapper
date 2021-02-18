@@ -1,7 +1,6 @@
 package mapper
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -121,8 +120,34 @@ func Test_MapperSlice(t *testing.T) {
 		t.Error(err)
 	} else {
 		t.Log(toSlice, len(toSlice))
-		for _, v := range toSlice {
-			fmt.Println(v)
+		for i := 0; i < len(fromSlice); i++ {
+			if !reflect.DeepEqual(fromSlice[i].Name, toSlice[i].Name) ||
+				!reflect.DeepEqual(fromSlice[i].Sex, toSlice[i].Sex) ||
+				!reflect.DeepEqual(fromSlice[i].AA, toSlice[i].BB) {
+				t.Fail()
+			}
+		}
+	}
+}
+
+func Test_MapperSlice2(t *testing.T) {
+	SetEnabledTypeChecking(true)
+	var fromSlice []*FromStruct
+	var toSlice []*ToStruct
+	for i := 0; i < 10; i++ {
+		fromSlice = append(fromSlice, &FromStruct{Name: "From" + strconv.Itoa(i), Sex: true, AA: "AA" + strconv.Itoa(i)})
+	}
+	err := MapperSlice(&fromSlice, &toSlice)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(toSlice, len(toSlice))
+		for i := 0; i < len(fromSlice); i++ {
+			if !reflect.DeepEqual(fromSlice[i].Name, toSlice[i].Name) ||
+				!reflect.DeepEqual(fromSlice[i].Sex, toSlice[i].Sex) ||
+				!reflect.DeepEqual(fromSlice[i].AA, toSlice[i].BB) {
+				t.Fail()
+			}
 		}
 	}
 }
@@ -139,8 +164,34 @@ func Test_MapperStructSlice(t *testing.T) {
 		t.Error(err)
 	} else {
 		t.Log(toSlice, len(toSlice))
-		for _, v := range toSlice {
-			fmt.Println(v)
+		for i := 0; i < len(fromSlice); i++ {
+			if !reflect.DeepEqual(fromSlice[i].Name, toSlice[i].Name) ||
+				!reflect.DeepEqual(fromSlice[i].Sex, toSlice[i].Sex) ||
+				!reflect.DeepEqual(fromSlice[i].AA, toSlice[i].BB) {
+				t.Fail()
+			}
+		}
+	}
+}
+
+func Test_MapperStructSlice2(t *testing.T) {
+	SetEnabledTypeChecking(true)
+	var fromSlice []FromStruct
+	var toSlice []ToStruct
+	for i := 0; i < 10; i++ {
+		fromSlice = append(fromSlice, FromStruct{Name: "From" + strconv.Itoa(i), Sex: true, AA: "AA" + strconv.Itoa(i)})
+	}
+	err := MapperSlice(&fromSlice, &toSlice)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(toSlice, len(toSlice))
+		for i := 0; i < len(fromSlice); i++ {
+			if !reflect.DeepEqual(fromSlice[i].Name, toSlice[i].Name) ||
+				!reflect.DeepEqual(fromSlice[i].Sex, toSlice[i].Sex) ||
+				!reflect.DeepEqual(fromSlice[i].AA, toSlice[i].BB) {
+				t.Fail()
+			}
 		}
 	}
 }
@@ -167,6 +218,21 @@ func Test_AutoMapper(t *testing.T) {
 	}
 }
 
+func Test_AutoMapper_StructToMap(t *testing.T) {
+	from := &FromStruct{Name: "From", Sex: true, AA: "AA"}
+	to := make(map[string]interface{})
+	err := AutoMapper(from, &to)
+	if err != nil {
+		t.Error("RunResult error: mapper error", err)
+	} else {
+		if to["UserName"] == "From" {
+			t.Log("RunResult success:", to)
+		} else {
+			t.Error("RunResult failed: map[UserName]", to["UserName"])
+		}
+	}
+}
+
 func Test_MapperMap(t *testing.T) {
 	validateTime, _ := time.Parse("2006-01-02 15:04:05", "2017-01-01 10:00:00")
 	fromMap := make(map[string]interface{})
@@ -181,6 +247,32 @@ func Test_MapperMap(t *testing.T) {
 		t.Error("RunResult error: mapper error", err)
 	} else {
 		t.Log("RunResult success:", toObj)
+	}
+}
+
+func Test_MapToSlice(t *testing.T) {
+	var toSlice []*testStruct
+	/*fromMaps := make(map[string]interface{})
+	for i := 0; i < 10; i++ {
+		from := new(testStruct)
+		from.Name = "s" + strconv.Itoa(i)
+		from.Sex = true
+		from.Age = i
+		fromMaps[strconv.Itoa(i)] = from
+	}*/
+	fromMaps := make(map[string]interface{})
+	for i := 0; i < 10; i++ {
+		fromMap := make(map[string]interface{})
+		fromMap["Name"] = "s" + strconv.Itoa(i)
+		fromMap["Sex"] = true
+		fromMap["Age"] = i
+		fromMaps[strconv.Itoa(i)] = fromMap
+	}
+	err := MapToSlice(fromMaps, &toSlice)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(toSlice, len(toSlice))
 	}
 }
 
@@ -290,6 +382,15 @@ func BenchmarkAutoMapper(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		Mapper(from, to)
+	}
+}
+
+func BenchmarkAutoMapper_Map(b *testing.B) {
+	from := &FromStruct{Name: "From", Sex: true, AA: "AA"}
+	to := make(map[string]interface{})
+
+	for i := 0; i < b.N; i++ {
+		Mapper(from, &to)
 	}
 }
 

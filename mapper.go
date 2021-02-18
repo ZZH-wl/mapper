@@ -26,7 +26,7 @@ var (
 )
 
 const (
-	packageVersion = "0.6"
+	packageVersion = "0.7.5"
 	mapperTagKey   = "mapper"
 	jsonTagKey     = "json"
 	IgnoreTagValue = "-"
@@ -97,7 +97,7 @@ func SetEnabledMapperStructField(isEnabled bool) {
 func Register(obj interface{}) error {
 	objValue := reflect.ValueOf(obj)
 	if objValue == ZeroValue {
-		return errors.New("no exists this value")
+		return errors.New("obj value does not exist")
 	}
 	return registerValue(objValue)
 }
@@ -106,7 +106,7 @@ func Register(obj interface{}) error {
 func registerValue(objValue reflect.Value) error {
 	regValue := objValue
 	if objValue == ZeroValue {
-		return errors.New("no exists this value")
+		return errors.New("obj value does not exist")
 	}
 
 	if regValue.Type().Kind() == reflect.Ptr {
@@ -206,16 +206,58 @@ func MapperMap(fromMap interface{}, toObj interface{}) error {
 	return nil
 }
 
+// MapToSlice mapper from map[string]interface{} to a slice of any type's ptr
+// toSlice must be a slice of any type.
+func MapToSlice(fromMap map[string]interface{}, toSlice interface{}) error {
+	var err error
+	toValue := reflect.ValueOf(toSlice)
+	if toValue.Kind() != reflect.Ptr {
+		return errors.New("toSlice must be a pointer to a slice")
+	}
+	if toValue.IsNil() {
+		return errors.New("toSlice must not be a nil pointer")
+	}
+
+	toElemType := reflect.TypeOf(toSlice).Elem().Elem()
+	realType := toElemType.Kind()
+	direct := reflect.Indirect(toValue)
+	if realType == reflect.Ptr {
+		toElemType = toElemType.Elem()
+	}
+	for _, v := range fromMap {
+		if reflect.TypeOf(v).Kind().String() == "map" {
+			elem := reflect.New(toElemType)
+			err = MapperMap(v.(map[string]interface{}), elem.Interface())
+			if err == nil {
+				if realType == reflect.Ptr {
+					direct.Set(reflect.Append(direct, elem))
+				} else {
+					direct.Set(reflect.Append(direct, elem).Elem())
+				}
+			}
+		} else {
+			if realType == reflect.Ptr {
+				direct.Set(reflect.Append(direct, reflect.ValueOf(v)))
+			} else {
+				direct.Set(reflect.Append(direct, reflect.ValueOf(v).Elem()))
+			}
+		}
+
+	}
+	return err
+}
+
 // MapperMapSlice mapper from map[string]map[string]interface{} to a slice of any type's ptr
 // toSlice must be a slice of any type.
+// Deprecated: will remove on v1.0, please use MapToSlice instead
 func MapperMapSlice(fromMaps map[string]map[string]interface{}, toSlice interface{}) error {
 	var err error
 	toValue := reflect.ValueOf(toSlice)
 	if toValue.Kind() != reflect.Ptr {
-		return errors.New("toSlice must pointer of slice")
+		return errors.New("toSlice must be a pointer to a slice")
 	}
 	if toValue.IsNil() {
-		return errors.New("toSlice must not nil pointer")
+		return errors.New("toSlice must not be a nil pointer")
 	}
 
 	toElemType := reflect.TypeOf(toSlice).Elem().Elem()
@@ -245,10 +287,10 @@ func MapperSlice(fromSlice, toSlice interface{}) error {
 	var err error
 	toValue := reflect.ValueOf(toSlice)
 	if toValue.Kind() != reflect.Ptr {
-		return errors.New("toSlice must pointer of slice")
+		return errors.New("toSlice must be a pointer to a slice")
 	}
 	if toValue.IsNil() {
-		return errors.New("toSlice must not nil pointer")
+		return errors.New("toSlice must not be a nil pointer")
 	}
 
 	elemType := reflect.TypeOf(toSlice).Elem().Elem()
